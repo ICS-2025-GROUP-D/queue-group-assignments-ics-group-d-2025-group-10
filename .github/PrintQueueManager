@@ -26,3 +26,8 @@ class PrintQueueManager:
         }
         self.priority_queue.append(new_job)
         self._prioritize_jobs()
+        def dequeue_job(self):
+        """Remove and return the highest priority job"""
+        if not self.priority_queue:
+            return None
+        return self.priority_queue.pop(0)
