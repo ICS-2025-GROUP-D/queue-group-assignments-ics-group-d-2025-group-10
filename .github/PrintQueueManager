@@ -3,3 +3,6 @@ class PrintQueueManager:
         self.priority_queue = []
         self.aging_interval = aging_interval  # ticks between aging updates
         self.tick_counter = 0
+        def _prioritize_jobs(self):
+        """Sort jobs by priority (highest first) and waiting time (longest first for ties)"""
+        self.priority_queue.sort(key=lambda job: (-job['priority'], job['wait_time']))
