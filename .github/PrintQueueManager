@@ -1,0 +1,5 @@
+class PrintQueueManager:
+    def __init__(self, aging_interval=5):
+        self.priority_queue = []
+        self.aging_interval = aging_interval  # ticks between aging updates
+        self.tick_counter = 0
