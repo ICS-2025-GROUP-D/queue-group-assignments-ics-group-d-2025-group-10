@@ -6,3 +6,12 @@ class PrintQueueManager:
         def _prioritize_jobs(self):
         """Sort jobs by priority (highest first) and waiting time (longest first for ties)"""
         self.priority_queue.sort(key=lambda job: (-job['priority'], job['wait_time']))
+        def apply_priority_aging(self):
+        """Increment priority of waiting jobs after aging interval"""
+        self.tick_counter += 1
+        if self.tick_counter >= self.aging_interval:
+            self.tick_counter = 0
+            for job in self.priority_queue:
+                if job['priority'] > 0:  # Don't age jobs that are already max priority
+                    job['priority'] -= 1  # Higher priority = lower number in our system
+            self._prioritize_jobs()
