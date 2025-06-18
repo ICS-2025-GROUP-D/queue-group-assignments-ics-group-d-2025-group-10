@@ -26,3 +26,26 @@ class PrintQueueManager:
     def is_full(self) -> bool:
         """Check if the queue is full"""
         return self.size == self.capacity
+    
+    def enqueue_job(self, user_id: str, job_id: str, priority: int, current_time: int) -> bool:
+    
+        with self.lock:  # Ensure thread-safe operation
+            if self.is_full():
+                return False
+
+            new_job = PrintJob(
+                user_id=user_id,
+                job_id=job_id,
+                priority=priority,
+                timestamp=current_time
+            )
+
+            # For empty queue
+            if self.is_empty():
+                self.front = self.rear = 0
+            else:
+                self.rear = (self.rear + 1) % self.capacity
+
+            self.queue[self.rear] = new_job
+            self.size += 1
+            return True
