@@ -1,0 +1,28 @@
+class System:
+    def __init__(self):
+        self.current_time = 0
+        self.waiting_queue = []  
+        self.event_queue = []    
+
+    def tick(self):
+       
+        self.current_time += 1
+
+        
+        for entity in self.waiting_queue:
+            entity.waiting_time += 1
+
+       
+        for entity in list(self.waiting_queue): 
+
+            if entity.waiting_time > AGING_THRESHOLD:
+                entity.priority += 1
+            
+            
+            if entity.waiting_time > MAX_WAIT_TIME:
+                self.waiting_queue.remove(entity)
+
+       
+        while self.event_queue and self.event_queue[0].time <= self.current_time:
+            event = self.event_queue.pop(0)
+            event.execute()  
