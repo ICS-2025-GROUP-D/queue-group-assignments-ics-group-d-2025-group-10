@@ -94,3 +94,12 @@ class PrintQueueManager:
                 'is_full': self.is_full(),
                 'jobs': jobs
             }
+        
+    def peek_next_job(self) -> Optional[PrintJob]:
+        """
+        Just a regular peek method
+        """
+        with self.lock:
+            if self.is_empty():
+                return None
+            return self.queue[self.front]
