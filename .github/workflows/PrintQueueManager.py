@@ -22,3 +22,7 @@ class PrintQueueManager:
     def is_empty(self) -> bool:
         """Check if the queue is empty"""
         return self.size == 0
+    
+    def is_full(self) -> bool:
+        """Check if the queue is full"""
+        return self.size == self.capacity
