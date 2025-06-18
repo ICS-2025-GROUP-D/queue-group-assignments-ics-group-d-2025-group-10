@@ -15,3 +15,14 @@ class PrintQueueManager:
                 if job['priority'] > 0:  # Don't age jobs that are already max priority
                     job['priority'] -= 1  # Higher priority = lower number in our system
             self._prioritize_jobs()
+        def enqueue_job(self, user_id, job_id, priority):
+        """Add new job with proper priority handling"""
+        new_job = {
+            'user_id': user_id,
+            'job_id': job_id,
+            'priority': priority,
+            'wait_time': 0,
+            'arrival_time': self.current_time
+        }
+        self.priority_queue.append(new_job)
+        self._prioritize_jobs()
