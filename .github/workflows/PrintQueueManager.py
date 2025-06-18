@@ -65,3 +65,32 @@ class PrintQueueManager:
 
             self.size -= 1
             return job
+    
+    def get_queue_status(self) -> dict:
+        """
+        return info about the queue
+        """
+        with self.lock:  # Ensure thread-safe operation
+            jobs = []
+            if not self.is_empty():
+                # Walk through the circular queue from front to rear
+                if self.front <= self.rear:
+                    # Normal case (not wrapped around)
+                    for i in range(self.front, self.rear + 1):
+                        if self.queue[i] is not None:
+                            jobs.append(self.queue[i])
+                else:
+                    # Wrapped around case
+                    for i in range(self.front, self.capacity):
+                        if self.queue[i] is not None:
+                            jobs.append(self.queue[i])
+                    for i in range(0, self.rear + 1):
+                        if self.queue[i] is not None:
+                            jobs.append(self.queue[i])
+
+            return {
+                'capacity': self.capacity,
+                'current_size': self.size,
+                'is_full': self.is_full(),
+                'jobs': jobs
+            }
