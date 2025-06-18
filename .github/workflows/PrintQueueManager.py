@@ -18,3 +18,7 @@ class PrintQueueManager:
         self.rear = -1   # Index of rear element
         self.size = 0    # Current number of jobs in queue
         self.lock = threading.Lock()  # For thread safety
+
+    def is_empty(self) -> bool:
+        """Check if the queue is empty"""
+        return self.size == 0
