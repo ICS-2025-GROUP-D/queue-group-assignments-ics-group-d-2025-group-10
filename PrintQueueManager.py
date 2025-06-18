@@ -1,105 +1,113 @@
 import threading
-from dataclasses import dataclass
-from typing import Optional, List
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict, Any
+import time
 
-@dataclass
+@dataclass(order=True)
 class PrintJob:
-    """Class to store metadata for each print job"""
-    user_id: str
-    job_id: str
+    """Class to store metadata for each print job with sorting support"""
+    # Note: priority is first to enable proper sorting
     priority: int
-    waiting_time: int = 0
-    timestamp: int = 0
+    timestamp: float = field(default_factory=time.time, compare=False)
+    waiting_time: int = field(default=0, compare=False)
+    user_id: str = field(default="", compare=False)
+    job_id: str = field(default="", compare=False)
+    
+    def __str__(self):
+        return (f"Job {self.job_id} (User: {self.user_id}) - "
+                f"Priority: {self.priority}, Waiting: {self.waiting_time}s")
+
 class PrintQueueManager:
     def __init__(self, capacity: int = 10):
+        
         self.capacity = capacity
-        self.queue: List[Optional[PrintJob]] = [None] * capacity
-        self.front = -1  # Index of front element
-        self.rear = -1   # Index of rear element
-        self.size = 0    # Current number of jobs in queue
-        self.lock = threading.Lock()  # For thread safety
+        self.queue: List[PrintJob] = []
+        self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
+        self._shutdown = False
 
     def is_empty(self) -> bool:
         """Check if the queue is empty"""
-        return self.size == 0
-    
+        return len(self.queue) == 0
+
     def is_full(self) -> bool:
         """Check if the queue is full"""
-        return self.size == self.capacity
-    
-    def enqueue_job(self, user_id: str, job_id: str, priority: int, current_time: int) -> bool:
-    
-        with self.lock:  # Ensure thread-safe operation
+        return len(self.queue) >= self.capacity
+
+    def enqueue_job(self, user_id: str, job_id: str, priority: int) -> bool:
+        
+        with self.condition:
             if self.is_full():
                 return False
 
             new_job = PrintJob(
-                user_id=user_id,
-                job_id=job_id,
                 priority=priority,
-                timestamp=current_time
+                user_id=user_id,
+                job_id=job_id
             )
-
-            # For empty queue
-            if self.is_empty():
-                self.front = self.rear = 0
-            else:
-                self.rear = (self.rear + 1) % self.capacity
-
-            self.queue[self.rear] = new_job
-            self.size += 1
-            return True
-    
-    def dequeue_job(self) -> Optional[PrintJob]:
-        with self.lock:  # Ensure thread-safe operation
-            if self.is_empty():
-                return None
-
-            job = self.queue[self.front]
             
-            # If this was the last job
-            if self.front == self.rear:
-                self.front = self.rear = -1
-            else:
-                self.front = (self.front + 1) % self.capacity
+            # Insert in priority order (lower priority numbers first)
+            self.queue.append(new_job)
+            self.queue.sort()  # Sorts by priority (defined in PrintJob)
+            
+            self.condition.notify_all()
+            return True
 
-            self.size -= 1
-            return job
-    
-    def get_queue_status(self) -> dict:
-        """
-        return info about the queue
-        """
-        with self.lock:  # Ensure thread-safe operation
-            jobs = []
-            if not self.is_empty():
-                # Walk through the circular queue from front to rear
-                if self.front <= self.rear:
-                    # Normal case (not wrapped around)
-                    for i in range(self.front, self.rear + 1):
-                        if self.queue[i] is not None:
-                            jobs.append(self.queue[i])
-                else:
-                    # Wrapped around case
-                    for i in range(self.front, self.capacity):
-                        if self.queue[i] is not None:
-                            jobs.append(self.queue[i])
-                    for i in range(0, self.rear + 1):
-                        if self.queue[i] is not None:
-                            jobs.append(self.queue[i])
+    def dequeue_job(self, blocking: bool = True) -> Optional[PrintJob]:
+       
+        with self.condition:
+            if not blocking and self.is_empty():
+                return None
+                
+            while not self._shutdown and self.is_empty():
+                self.condition.wait()
+                
+            if self._shutdown:
+                return None
+                
+            return self.queue.pop(0)  # Remove from front (highest priority)
 
+    def get_queue_status(self) -> Dict[str, Any]:
+        
+        with self.lock:
             return {
                 'capacity': self.capacity,
-                'current_size': self.size,
+                'current_size': len(self.queue),
                 'is_full': self.is_full(),
-                'jobs': jobs
+                'jobs': [{
+                    'user_id': job.user_id,
+                    'job_id': job.job_id,
+                    'priority': job.priority,
+                    'waiting_time': job.waiting_time,
+                    'timestamp': job.timestamp
+                } for job in self.queue]
             }
-        
-    def peek_next_job(self) -> Optional[PrintJob]:
-        """
-        Just a regular peek method
-        """
+
+    def update_waiting_times(self) -> None:
+
         with self.lock:
+            for job in self.queue:
+                job.waiting_time += 1
+
+    def shutdown(self) -> None:
+        
+        with self.condition:
+            self._shutdown = True
+            self.condition.notify_all()
+
+    def __str__(self) -> str:
+        
+        with self.lock:
+            status = self.get_queue_status()
+            output = [
+                f"Print Queue Status (Size: {status['current_size']}/{status['capacity']})",
+                "=" * 40
+            ]
+            
             if self.is_empty():
-                return None
-            return self.queue[self.front]
+                output.append("Queue is empty")
+            else:
+                for idx, job in enumerate(self.queue, 1):
+                    output.append(f"{idx}. {job}")
+                    
+            return "\n".join(output)
