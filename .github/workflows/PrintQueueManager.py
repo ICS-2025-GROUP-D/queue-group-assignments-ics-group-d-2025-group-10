@@ -49,3 +49,19 @@ class PrintQueueManager:
             self.queue[self.rear] = new_job
             self.size += 1
             return True
+    
+    def dequeue_job(self) -> Optional[PrintJob]:
+        with self.lock:  # Ensure thread-safe operation
+            if self.is_empty():
+                return None
+
+            job = self.queue[self.front]
+            
+            # If this was the last job
+            if self.front == self.rear:
+                self.front = self.rear = -1
+            else:
+                self.front = (self.front + 1) % self.capacity
+
+            self.size -= 1
+            return job
