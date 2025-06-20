@@ -28,13 +28,13 @@ class PrintQueueManager:
         remaining_jobs = []
         for job in self.queue:
             if job.waiting_time >= self.expiry_limit:
-                print(f"❌ Job {job.job_id} by user {job.user_id} has expired and is removed.")
+                print(f" no Job {job.job_id} by user {job.user_id} has expired and is removed.")
             else:
                 remaining_jobs.append(job)
         self.queue = remaining_jobs
 
     def show_status(self):
-        print("\n📄 Current Queue Status:")
+        print("\n  Current Queue Status:")
         if not self.queue:
             print("Queue is empty.")
             return
